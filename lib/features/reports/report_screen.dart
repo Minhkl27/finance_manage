@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -114,6 +116,36 @@ class _ReportScreenState extends State<ReportScreen> {
             final monthExpense = monthTransactions
                 .where((tx) => !tx.isIncome)
                 .fold(0.0, (sum, tx) => sum + tx.amount);
+
+            // Group expenses by category
+            final Map<String, double> categoryExpenses = {};
+            for (var tx in monthTransactions.where((tx) => !tx.isIncome)) {
+              final category = tx.category.trim().isEmpty
+                  ? 'Khác'
+                  : tx.category;
+              categoryExpenses.update(
+                category,
+                (value) => value + tx.amount,
+                ifAbsent: () => tx.amount,
+              );
+            }
+            final sortedCategoryExpenses = categoryExpenses.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+
+            // Group incomes by category
+            final Map<String, double> categoryIncomes = {};
+            for (var tx in monthTransactions.where((tx) => tx.isIncome)) {
+              final category = tx.category.trim().isEmpty
+                  ? 'Khác'
+                  : tx.category;
+              categoryIncomes.update(
+                category,
+                (value) => value + tx.amount,
+                ifAbsent: () => tx.amount,
+              );
+            }
+            final sortedCategoryIncomes = categoryIncomes.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
 
             return SingleChildScrollView(
               padding: EdgeInsets.only(
@@ -260,6 +292,26 @@ class _ReportScreenState extends State<ReportScreen> {
 
                   const SizedBox(height: AppConstants.defaultPadding),
 
+                  // Expense categories breakdown
+                  if (sortedCategoryExpenses.isNotEmpty)
+                    _buildCategoryBreakdownSection(
+                      context: context,
+                      title: 'Danh mục chi tiêu',
+                      categoryData: sortedCategoryExpenses,
+                      totalAmount: monthExpense,
+                      color: const Color(0xFFEF4444), // Error red
+                    ),
+
+                  // Income categories breakdown
+                  if (sortedCategoryIncomes.isNotEmpty)
+                    _buildCategoryBreakdownSection(
+                      context: context,
+                      title: 'Danh mục thu nhập',
+                      categoryData: sortedCategoryIncomes,
+                      totalAmount: monthIncome,
+                      color: const Color(0xFF10B981), // Success green
+                    ),
+
                   // Transaction count
                   Text(
                     'Thống kê giao dịch',
@@ -302,6 +354,100 @@ class _ReportScreenState extends State<ReportScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryBreakdownSection({
+    required BuildContext context,
+    required String title,
+    required List<MapEntry<String, double>> categoryData,
+    required double totalAmount,
+    required Color color,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.inter(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: AppConstants.defaultPadding),
+        Card(
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: categoryData.length,
+            itemBuilder: (context, index) {
+              final entry = categoryData[index];
+              final percentage = totalAmount > 0
+                  ? (entry.value / totalAmount)
+                  : 0.0;
+              return _buildCategoryItem(
+                context,
+                entry.key,
+                entry.value,
+                percentage,
+                color,
+              );
+            },
+            separatorBuilder: (context, index) => const Divider(height: 1),
+          ),
+        ),
+        const SizedBox(height: AppConstants.largePadding),
+      ],
+    );
+  }
+
+  Widget _buildCategoryItem(
+    BuildContext context,
+    String category,
+    double amount,
+    double percentage,
+    Color color,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppConstants.defaultPadding,
+        vertical: AppConstants.smallPadding,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                category,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                Formatters.formatCurrency(amount),
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: percentage,
+            backgroundColor: color.withOpacity(0.2),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 6,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        ],
       ),
     );
   }

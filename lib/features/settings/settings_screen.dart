@@ -124,7 +124,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         child: ListView(
-          padding: const EdgeInsets.all(AppConstants.defaultPadding),
+          padding: const EdgeInsets.only(
+            left: AppConstants.defaultPadding,
+            right: AppConstants.defaultPadding,
+            top: AppConstants.defaultPadding,
+            bottom: 80, // Thêm khoảng đệm dưới cùng
+          ),
           children: [
             // App section
             const Text(

@@ -251,6 +251,12 @@ class _TransactionScreenState extends State<TransactionScreen> {
                               : 'Nhấn nút + để thêm giao dịch đầu tiên',
                           action: ElevatedButton.icon(
                             onPressed: _showAddTransactionScreen,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 12,
+                              ),
+                            ),
                             icon: const Icon(Icons.add),
                             label: const Text('Thêm giao dịch'),
                           ),
@@ -258,6 +264,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       : ListView.builder(
                           itemCount: transactions.length,
                           itemBuilder: (ctx, index) {
+                            // Sắp xếp lại để hiển thị giao dịch mới nhất lên đầu
                             final tx =
                                 transactions[transactions.length - 1 - index];
 
@@ -267,6 +274,11 @@ class _TransactionScreenState extends State<TransactionScreen> {
                               onDelete: () => _deleteTransaction(tx.id),
                             );
                           },
+                          padding: const EdgeInsets.only(
+                            left: AppConstants.defaultPadding,
+                            right: AppConstants.defaultPadding,
+                            bottom: 80, // Thêm khoảng đệm dưới cùng
+                          ),
                         ),
                 ),
               ],
