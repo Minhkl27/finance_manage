@@ -28,9 +28,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Hủy'),
           ),
           TextButton(
-            onPressed: () {
-              context.read<TransactionProvider>().clearAllData();
-              context.read<BudgetProvider>().clearAllData();
+            onPressed: () async {
+              // Sử dụng await để đợi hàm xóa dữ liệu hoàn tất
+              await context.read<TransactionProvider>().clearAllData();
+              await context.read<BudgetProvider>().clearAllData();
+              // Đảm bảo context vẫn hợp lệ trước khi sử dụng
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

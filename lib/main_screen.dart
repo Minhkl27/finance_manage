@@ -37,6 +37,18 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Sử dụng Future.microtask để đảm bảo context đã sẵn sàng
+    // và gọi các hàm load dữ liệu ngay khi widget được tạo.
+    // listen: false là bắt buộc trong initState.
+    Future.microtask(
+      () => context.read<TransactionProvider>().loadTransactions(),
+    );
+    Future.microtask(() => context.read<BudgetProvider>().loadBudgets());
+  }
+
+  @override
   Widget build(BuildContext context) {
     final transactionProvider = context.watch<TransactionProvider>();
     final budgetProvider = context.watch<BudgetProvider>();

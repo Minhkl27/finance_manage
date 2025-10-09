@@ -58,7 +58,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  void _saveTransaction() {
+  void _saveTransaction() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -89,9 +89,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final provider = context.read<TransactionProvider>();
 
     if (_isEditing) {
-      provider.updateTransaction(widget.transaction!.id, transaction);
+      await provider.updateTransaction(widget.transaction!.id, transaction);
     } else {
-      provider.addTransaction(transaction);
+      await provider.addTransaction(transaction);
     }
 
     Navigator.of(context).pop();
