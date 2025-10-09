@@ -102,6 +102,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
+        margin: EdgeInsets.only(bottom: 70),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
