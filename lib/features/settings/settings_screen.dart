@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/budget_provider.dart';
 import '../../data/providers/transaction_provider.dart';
 import '../../core/constants/app_constants.dart';
+import 'user_guide_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -229,6 +230,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     leading: const Icon(Icons.help_outline),
                     title: const Text('Hướng dẫn sử dụng'),
                     subtitle: const Text('Tìm hiểu cách sử dụng ứng dụng'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const UserGuideScreen(),
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.question_answer_outlined),
+                    title: const Text('FAQs'),
+                    subtitle: const Text('Câu hỏi thường gặp'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tính năng đang phát triển'),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.contact_mail_outlined),
+                    title: const Text('Liên hệ'),
+                    subtitle: const Text('Liên hệ với chúng tôi'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tính năng đang phát triển'),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.description_outlined),
+                    title: const Text('Điều khoản dịch vụ'),
+                    subtitle: const Text(
+                      'Đọc điều khoản dịch vụ của chúng tôi',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tính năng đang phát triển'),
+                        ),
+                      );
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.privacy_tip_outlined),
+                    title: const Text('Chính sách bảo mật'),
+                    subtitle: const Text(
+                      'Đọc chính sách bảo mật của chúng tôi',
+                    ),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
