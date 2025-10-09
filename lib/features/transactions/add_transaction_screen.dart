@@ -87,21 +87,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
 
     final provider = context.read<TransactionProvider>();
+    // Capture Navigator and ScaffoldMessenger before the async gap.
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final isEditing = _isEditing; // Also capture boolean value
 
-    if (_isEditing) {
+    if (isEditing) {
       await provider.updateTransaction(widget.transaction!.id, transaction);
     } else {
       await provider.addTransaction(transaction);
     }
 
-    Navigator.of(context).pop();
-
-    ScaffoldMessenger.of(context).showSnackBar(
+    navigator.pop();
+    scaffoldMessenger.showSnackBar(
       SnackBar(
         content: Text(
-          _isEditing
-              ? 'Giao dịch đã được cập nhật!'
-              : 'Giao dịch đã được thêm!',
+          isEditing ? 'Giao dịch đã được cập nhật!' : 'Giao dịch đã được thêm!',
         ),
         backgroundColor: Colors.green,
       ),

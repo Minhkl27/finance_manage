@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -29,12 +31,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           TextButton(
             onPressed: () async {
+              // Capture Navigator and ScaffoldMessenger before the async gap.
+              final navigator = Navigator.of(ctx);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+
               // Sử dụng await để đợi hàm xóa dữ liệu hoàn tất
               await context.read<TransactionProvider>().clearAllData();
               await context.read<BudgetProvider>().clearAllData();
-              // Đảm bảo context vẫn hợp lệ trước khi sử dụng
-              Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
+
+              // Now use the captured instances.
+              navigator.pop();
+              scaffoldMessenger.showSnackBar(
                 const SnackBar(
                   content: Text('Đã xóa tất cả dữ liệu'),
                   backgroundColor: Colors.green,
