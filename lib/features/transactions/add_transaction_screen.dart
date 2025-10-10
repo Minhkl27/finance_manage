@@ -18,9 +18,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
-  final _categoryController = TextEditingController();
+  final _otherCategoryController = TextEditingController();
   bool _isIncome = false;
   DateTime _selectedDate = DateTime.now();
+  String? _currentCategorySelection;
+
+  static const List<String> _defaultCategories = [
+    'Ăn uống',
+    'Đi lại',
+    'Mua sắm',
+    'Xăng xe',
+    'Lương',
+  ];
 
   bool get _isEditing => widget.transaction != null;
 
@@ -32,7 +41,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _amountController.text = widget.transaction!.amount.toString();
       _isIncome = widget.transaction!.isIncome;
       _selectedDate = widget.transaction!.date;
-      _categoryController.text = widget.transaction!.category;
+      final category = widget.transaction!.category;
+      if (_defaultCategories.contains(category) || category == 'Khác') {
+        _currentCategorySelection = category;
+      } else if (category.isNotEmpty) {
+        _currentCategorySelection = 'Khác';
+        _otherCategoryController.text = category;
+      }
     }
   }
 
@@ -40,7 +55,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void dispose() {
     _titleController.dispose();
     _amountController.dispose();
-    _categoryController.dispose();
+    _otherCategoryController.dispose();
     super.dispose();
   }
 
@@ -63,14 +78,29 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
 
+    _formKey.currentState!.save(); // Save the form fields
+
     final title = _titleController.text.trim();
     final amount = double.tryParse(_amountController.text);
-    final category = _categoryController.text.trim();
+    String category = _currentCategorySelection ?? '';
+    if (_currentCategorySelection == 'Khác') {
+      category = _otherCategoryController.text.trim();
+    }
 
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Vui lòng nhập số tiền hợp lệ!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (category.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn hoặc nhập danh mục!'),
           backgroundColor: Colors.red,
         ),
       );
@@ -209,21 +239,54 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
               const SizedBox(height: AppConstants.defaultPadding),
 
-              // Category field
-              TextFormField(
-                controller: _categoryController,
+              // Category dropdown
+              DropdownButtonFormField<String>(
+                initialValue: _currentCategorySelection,
                 decoration: const InputDecoration(
                   labelText: 'Danh mục',
-                  hintText: 'Ví dụ: Ăn uống, Đi lại...',
                   prefixIcon: Icon(Icons.category_outlined),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập danh mục';
-                  }
-                  return null;
+                hint: const Text('Chọn danh mục'),
+                items: [
+                  ..._defaultCategories.map((String category) {
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }),
+                  const DropdownMenuItem<String>(
+                    value: 'Khác',
+                    child: Text('Khác (tự nhập)'),
+                  ),
+                ],
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _currentCategorySelection = newValue;
+                  });
                 },
+                validator: (value) =>
+                    value == null ? 'Vui lòng chọn danh mục' : null,
               ),
+
+              if (_currentCategorySelection == 'Khác') ...[
+                const SizedBox(height: AppConstants.defaultPadding),
+                TextFormField(
+                  controller: _otherCategoryController,
+                  decoration: const InputDecoration(
+                    labelText: 'Tên danh mục khác',
+                    hintText: 'Ví dụ: Giải trí, Học phí...',
+                    prefixIcon: Icon(Icons.edit),
+                  ),
+                  validator: (value) {
+                    if (_currentCategorySelection == 'Khác') {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Vui lòng nhập tên danh mục';
+                      }
+                    }
+                    return null;
+                  },
+                ),
+              ],
 
               const SizedBox(height: AppConstants.defaultPadding),
 

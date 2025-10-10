@@ -17,9 +17,17 @@ class AddEditBudgetScreen extends StatefulWidget {
 
 class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _categoryController = TextEditingController();
+  final _otherCategoryController = TextEditingController();
   final _amountController = TextEditingController();
+  String? _currentCategorySelection;
   DateTime _selectedMonth = DateTime.now();
+
+  static const List<String> _defaultCategories = [
+    'Ăn uống',
+    'Đi lại',
+    'Mua sắm',
+    'Xăng xe',
+  ];
 
   bool get _isEditing => widget.budget != null;
 
@@ -27,7 +35,13 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
   void initState() {
     super.initState();
     if (_isEditing) {
-      _categoryController.text = widget.budget!.category;
+      final category = widget.budget!.category;
+      if (_defaultCategories.contains(category)) {
+        _currentCategorySelection = category;
+      } else if (category.isNotEmpty) {
+        _currentCategorySelection = 'Khác';
+        _otherCategoryController.text = category;
+      }
       _amountController.text = widget.budget!.amount.toStringAsFixed(0);
       _selectedMonth = widget.budget!.month;
     }
@@ -35,7 +49,7 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
 
   @override
   void dispose() {
-    _categoryController.dispose();
+    _otherCategoryController.dispose();
     _amountController.dispose();
     super.dispose();
   }
@@ -58,13 +72,28 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
   void _saveBudget() {
     if (!_formKey.currentState!.validate()) return;
 
-    final category = _categoryController.text.trim();
+    _formKey.currentState!.save();
+    String category = _currentCategorySelection ?? '';
+    if (_currentCategorySelection == 'Khác') {
+      category = _otherCategoryController.text.trim();
+    }
+
     final amount = double.tryParse(_amountController.text);
 
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Vui lòng nhập số tiền hợp lệ'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (category.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng chọn hoặc nhập danh mục'),
           backgroundColor: Colors.red,
         ),
       );
@@ -121,17 +150,51 @@ class _AddEditBudgetScreenState extends State<AddEditBudgetScreen> {
         child: ListView(
           padding: const EdgeInsets.all(AppConstants.defaultPadding),
           children: [
-            TextFormField(
-              controller: _categoryController,
+            DropdownButtonFormField<String>(
+              initialValue: _currentCategorySelection,
               decoration: const InputDecoration(
                 labelText: 'Danh mục',
-                hintText: 'Ví dụ: Ăn uống, Mua sắm...',
-                prefixIcon: Icon(Icons.category),
+                prefixIcon: Icon(Icons.category_outlined),
               ),
-              validator: (value) => (value == null || value.trim().isEmpty)
-                  ? 'Vui lòng nhập danh mục'
-                  : null,
+              hint: const Text('Chọn danh mục'),
+              items: [
+                ..._defaultCategories.map((String category) {
+                  return DropdownMenuItem<String>(
+                    value: category,
+                    child: Text(category),
+                  );
+                }),
+                const DropdownMenuItem<String>(
+                  value: 'Khác',
+                  child: Text('Khác (tự nhập)'),
+                ),
+              ],
+              onChanged: (String? newValue) {
+                setState(() {
+                  _currentCategorySelection = newValue;
+                });
+              },
+              validator: (value) =>
+                  value == null ? 'Vui lòng chọn danh mục' : null,
             ),
+            if (_currentCategorySelection == 'Khác') ...[
+              const SizedBox(height: AppConstants.defaultPadding),
+              TextFormField(
+                controller: _otherCategoryController,
+                decoration: const InputDecoration(
+                  labelText: 'Tên danh mục khác',
+                  hintText: 'Ví dụ: Giải trí, Du lịch...',
+                  prefixIcon: Icon(Icons.edit),
+                ),
+                validator: (value) {
+                  if (_currentCategorySelection == 'Khác' &&
+                      (value == null || value.trim().isEmpty)) {
+                    return 'Vui lòng nhập tên danh mục';
+                  }
+                  return null;
+                },
+              ),
+            ],
             const SizedBox(height: AppConstants.defaultPadding),
             TextFormField(
               controller: _amountController,
