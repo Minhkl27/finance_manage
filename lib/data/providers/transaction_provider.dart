@@ -61,6 +61,16 @@ class TransactionProvider with ChangeNotifier {
     await _saveTransactions();
   }
 
+  // Add transaction only if an entry with the same ID doesn't exist
+  Future<void> addTransactionIfNotExists(Transaction transaction) async {
+    if (!_transactions.any((tx) => tx.id == transaction.id)) {
+      _transactions.add(transaction);
+      // Sort by date after adding to keep list consistent
+      _transactions.sort((a, b) => b.date.compareTo(a.date));
+      await _saveTransactions();
+    }
+  }
+
   // Update transaction
   Future<void> updateTransaction(
     String id,

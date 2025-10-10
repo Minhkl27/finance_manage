@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'data/providers/transaction_provider.dart';
+import 'data/providers/template_provider.dart';
+import 'data/providers/recurring_transaction_provider.dart';
 import 'data/providers/budget_provider.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'package:provider/provider.dart';
@@ -41,13 +43,23 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    // Sử dụng Future.microtask để đảm bảo context đã sẵn sàng
-    // và gọi các hàm load dữ liệu ngay khi widget được tạo.
-    // listen: false là bắt buộc trong initState.
-    Future.microtask(
-      () => context.read<TransactionProvider>().loadTransactions(),
-    );
-    Future.microtask(() => context.read<BudgetProvider>().loadBudgets());
+    _loadDataAndGenerateTransactions();
+  }
+
+  Future<void> _loadDataAndGenerateTransactions() async {
+    // Ensure the widget is mounted before accessing context.
+    if (!mounted) return;
+
+    final transactionProvider = context.read<TransactionProvider>();
+    final budgetProvider = context.read<BudgetProvider>();
+    final templateProvider = context.read<TemplateProvider>();
+    final recurringProvider = context.read<RecurringTransactionProvider>();
+
+    await transactionProvider.loadTransactions();
+    await budgetProvider.loadBudgets();
+    await templateProvider.loadTemplates();
+    await recurringProvider.loadRecurringTransactions();
+    await recurringProvider.generateDueTransactions(transactionProvider);
   }
 
   @override

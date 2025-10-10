@@ -5,7 +5,11 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/budget_provider.dart';
 import '../../data/providers/transaction_provider.dart';
+import '../../data/providers/template_provider.dart';
+import '../../data/providers/recurring_transaction_provider.dart';
 import '../../core/constants/app_constants.dart';
+import '../dashboard/manage_templates_screen.dart';
+import '../dashboard/manage_recurring_screen.dart';
 import 'user_guide_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -38,6 +42,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Sử dụng await để đợi hàm xóa dữ liệu hoàn tất
               await context.read<TransactionProvider>().clearAllData();
               await context.read<BudgetProvider>().clearAllData();
+              await context.read<TemplateProvider>().clearAllData();
+              await context.read<RecurringTransactionProvider>().clearAllData();
 
               // Now use the captured instances.
               navigator.pop();
@@ -184,6 +190,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Card(
               child: Column(
                 children: [
+                  ListTile(
+                    leading: const Icon(Icons.copy_all_outlined),
+                    title: const Text('Quản lý Mẫu giao dịch'),
+                    subtitle: const Text('Thêm, sửa, xóa các mẫu có sẵn'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ManageTemplatesScreen(),
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.repeat_rounded),
+                    title: const Text('Quản lý Giao dịch định kỳ'),
+                    subtitle: const Text('Thiết lập các khoản thu/chi tự động'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const ManageRecurringScreen(),
+                      ),
+                    ),
+                  ),
                   ListTile(
                     leading: const Icon(Icons.backup_outlined),
                     title: const Text('Sao lưu dữ liệu'),

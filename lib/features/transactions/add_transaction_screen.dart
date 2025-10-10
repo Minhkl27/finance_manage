@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/transaction.dart';
+import '../../data/models/transaction_template.dart';
 import '../../data/providers/transaction_provider.dart';
 import '../../core/constants/app_constants.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final Transaction? transaction; // For editing existing transaction
+  final TransactionTemplate? template; // For creating from template
 
-  const AddTransactionScreen({super.key, this.transaction});
+  const AddTransactionScreen({super.key, this.transaction, this.template})
+    : assert(
+        transaction == null || template == null,
+        'Cannot provide both a transaction and a template.',
+      );
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -32,6 +38,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   ];
 
   bool get _isEditing => widget.transaction != null;
+  bool get _isFromTemplate => widget.template != null;
 
   @override
   void initState() {
@@ -48,6 +55,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         _currentCategorySelection = 'Khác';
         _otherCategoryController.text = category;
       }
+    } else if (_isFromTemplate) {
+      _titleController.text = widget.template!.title;
+      _amountController.text = widget.template!.amount.toString();
+      _isIncome = widget.template!.isIncome;
+      final category = widget.template!.category;
+      // For simplicity, we'll treat template categories as 'Other' for now
+      _currentCategorySelection = 'Khác';
+      _otherCategoryController.text = category;
     }
   }
 

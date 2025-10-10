@@ -1,14 +1,16 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:finance_manage/features/transactions/add_transaction_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../data/models/transaction.dart';
-import '../../data/providers/transaction_provider.dart';
-import '../../widgets/empty_state.dart';
+import 'package:provider/provider.dart';
+import 'package:finance_manage/features/dashboard/add_edit_recurring_screen.dart';
+import 'package:finance_manage/features/transactions/add_transaction_screen.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
+import '../../data/models/transaction.dart';
+import '../../data/providers/template_provider.dart';
+import '../../data/providers/transaction_provider.dart';
+import '../../widgets/empty_state.dart';
 import '../budget/add_edit_budget_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -312,10 +314,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           icon: Icons.more_horiz_rounded,
           label: 'Thêm',
           onTap: () {
-            // Could open a bottom sheet with more options
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Tính năng đang phát triển')),
-            );
+            _showMoreActions(context);
           },
         ),
       ],
@@ -413,6 +412,130 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showMoreActions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.copy_rounded),
+                title: const Text('Thêm từ Mẫu'),
+                subtitle: const Text('Tạo giao dịch nhanh từ các mẫu có sẵn'),
+                onTap: () {
+                  Navigator.of(ctx).pop(); // Close the first bottom sheet
+                  _showTemplatesBottomSheet(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.repeat_rounded),
+                title: const Text('Thêm giao dịch định kỳ'),
+                subtitle: const Text('Thiết lập các khoản thu/chi lặp lại'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AddEditRecurringScreen(),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.swap_horiz_rounded),
+                title: const Text('Chuyển tiền'),
+                subtitle: const Text('Ghi lại việc chuyển tiền giữa các ví'),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Tính năng "Chuyển tiền" đang phát triển'),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showTemplatesBottomSheet(BuildContext context) {
+    final templateProvider = context.read<TemplateProvider>();
+    final templates = templateProvider.templates;
+
+    if (templates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Không có mẫu nào. Hãy vào Cài đặt > Quản lý Mẫu để tạo.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Chọn một mẫu để tạo giao dịch',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: templates.length,
+                itemBuilder: (listCtx, index) {
+                  final template = templates[index];
+                  return ListTile(
+                    leading: Icon(
+                      template.isIncome
+                          ? Icons.trending_up
+                          : Icons.trending_down,
+                      color: template.isIncome ? Colors.green : Colors.red,
+                    ),
+                    title: Text(template.title),
+                    subtitle: Text(
+                      '${template.category} - ${Formatters.formatCurrency(template.amount)}',
+                    ),
+                    onTap: () {
+                      Navigator.of(ctx).pop(); // Close the template list
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              AddTransactionScreen(template: template),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
