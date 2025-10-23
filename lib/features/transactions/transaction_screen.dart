@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/transaction_provider.dart';
+import '../../data/providers/budget_provider.dart';
 import '../../widgets/transaction_item.dart';
 import '../../widgets/empty_state.dart';
 import 'add_transaction_screen.dart';
@@ -46,8 +47,19 @@ class _TransactionScreenState extends State<TransactionScreen> {
           ),
           TextButton(
             onPressed: () {
-              context.read<TransactionProvider>().deleteTransaction(id);
+              final transactionProvider = context.read<TransactionProvider>();
+              final budgetProvider = context.read<BudgetProvider>();
+              // Lấy giao dịch cũ trước khi xóa
+              final oldTransaction = transactionProvider.transactions
+                  .firstWhere((tx) => tx.id == id);
+
+              transactionProvider.deleteTransaction(id);
               Navigator.of(ctx).pop();
+              // Kiểm tra ngân sách sau khi xóa
+              transactionProvider.checkBudgetsAndNotify(
+                budgetProvider,
+                oldTransaction: oldTransaction,
+              );
             },
             child: const Text('Xóa'),
           ),

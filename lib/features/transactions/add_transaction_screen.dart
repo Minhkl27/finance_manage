@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/transaction_template.dart';
+import '../../data/providers/budget_provider.dart';
 import '../../data/providers/transaction_provider.dart';
 import '../../core/constants/app_constants.dart';
 
@@ -132,16 +133,35 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       notes: '',
     );
 
-    final provider = context.read<TransactionProvider>();
+    final transactionProvider = context.read<TransactionProvider>();
+    final budgetProvider = context.read<BudgetProvider>();
     // Capture Navigator and ScaffoldMessenger before the async gap.
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final isEditing = _isEditing; // Also capture boolean value
 
     if (isEditing) {
-      await provider.updateTransaction(widget.transaction!.id, transaction);
+      final oldTransaction = widget.transaction;
+      await transactionProvider.updateTransaction(
+        widget.transaction!.id,
+        transaction,
+      );
+      // Kiểm tra ngân sách sau khi cập nhật
+      await transactionProvider.checkBudgetsAndNotify(
+        budgetProvider,
+        oldTransaction: oldTransaction,
+        newTransaction: transaction,
+      );
     } else {
-      await provider.addTransaction(transaction, fromRecurring: false);
+      await transactionProvider.addTransaction(
+        transaction,
+        fromRecurring: false,
+      );
+      // Kiểm tra ngân sách sau khi thêm
+      await transactionProvider.checkBudgetsAndNotify(
+        budgetProvider,
+        newTransaction: transaction,
+      );
     }
 
     navigator.pop();
