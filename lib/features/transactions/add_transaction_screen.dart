@@ -129,6 +129,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       date: _selectedDate,
       isIncome: _isIncome,
       category: category,
+      notes: '',
     );
 
     final provider = context.read<TransactionProvider>();
@@ -140,7 +141,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (isEditing) {
       await provider.updateTransaction(widget.transaction!.id, transaction);
     } else {
-      await provider.addTransaction(transaction);
+      await provider.addTransaction(transaction, fromRecurring: false);
     }
 
     navigator.pop();

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/utils/formatters.dart';
-import '../../data/models/recurrence_frequency.dart';
 import '../../data/providers/recurring_transaction_provider.dart';
 import '../../widgets/empty_state.dart';
 import 'add_edit_recurring_screen.dart';
@@ -62,7 +61,7 @@ class ManageRecurringScreen extends StatelessWidget {
                   ),
                   title: Text(item.title),
                   subtitle: Text(
-                    '${item.frequency.displayName} - ${Formatters.formatCurrency(item.amount)}',
+                    'Ngày ${item.dayOfMonth} hàng tháng - ${Formatters.formatCurrency(item.amount)}',
                   ),
                   trailing: IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),

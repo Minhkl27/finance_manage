@@ -15,7 +15,8 @@ class Transaction {
     required this.amount,
     required this.date,
     required this.isIncome,
-    this.category = '', // Default to empty string
+    this.category = '',
+    required String notes, // Default to empty string
   });
 
   // Convert to JSON
@@ -38,7 +39,8 @@ class Transaction {
       amount: json['amount'].toDouble(),
       date: DateTime.parse(json['date']),
       isIncome: json['isIncome'],
-      category: json['category'] ?? '', // Handle null values
+      category: json['category'] ?? '',
+      notes: '', // Handle null values
     );
   }
 
@@ -58,6 +60,7 @@ class Transaction {
       date: date ?? this.date,
       isIncome: isIncome ?? this.isIncome,
       category: category ?? this.category,
+      notes: '',
     );
   }
 }

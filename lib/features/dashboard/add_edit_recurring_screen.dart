@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_constants.dart';
-import '../../core/utils/formatters.dart';
-import '../../data/models/recurrence_frequency.dart';
 import '../../data/models/recurring_transaction.dart';
 import '../../data/providers/recurring_transaction_provider.dart';
 
@@ -20,11 +19,8 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final _categoryController = TextEditingController();
-
   bool _isIncome = false;
-  RecurrenceFrequency _frequency = RecurrenceFrequency.monthly;
-  DateTime _startDate = DateTime.now();
-  DateTime? _endDate;
+  int _dayOfMonth = DateTime.now().day;
 
   bool get _isEditing => widget.recurring != null;
 
@@ -32,14 +28,11 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
   void initState() {
     super.initState();
     if (_isEditing) {
-      final r = widget.recurring!;
-      _titleController.text = r.title;
-      _amountController.text = r.amount.toString();
-      _categoryController.text = r.category;
-      _isIncome = r.isIncome;
-      _frequency = r.frequency;
-      _startDate = r.startDate;
-      _endDate = r.endDate;
+      _titleController.text = widget.recurring!.title;
+      _amountController.text = widget.recurring!.amount.toStringAsFixed(0);
+      _categoryController.text = widget.recurring!.category;
+      _isIncome = widget.recurring!.isIncome;
+      _dayOfMonth = widget.recurring!.dayOfMonth;
     }
   }
 
@@ -49,25 +42,6 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
     _amountController.dispose();
     _categoryController.dispose();
     super.dispose();
-  }
-
-  Future<void> _selectDate(bool isStartDate) async {
-    final initial = isStartDate ? _startDate : (_endDate ?? DateTime.now());
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStartDate) {
-          _startDate = picked;
-        } else {
-          _endDate = picked;
-        }
-      });
-    }
   }
 
   void _saveRecurring() {
@@ -93,10 +67,10 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
       amount: amount,
       category: category,
       isIncome: _isIncome,
-      frequency: _frequency,
-      startDate: _startDate,
-      endDate: _endDate,
-      // lastGeneratedDate is handled by the provider
+      dayOfMonth: _dayOfMonth,
+      lastGeneratedDate: _isEditing
+          ? widget.recurring!.lastGeneratedDate
+          : null,
     );
 
     final provider = context.read<RecurringTransactionProvider>();
@@ -112,7 +86,31 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Sửa Định kỳ' : 'Tạo Định kỳ')),
+      appBar: AppBar(
+        title: Text(
+          _isEditing ? 'Sửa Giao dịch định kỳ' : 'Tạo Giao dịch định kỳ',
+          style: GoogleFonts.inter(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF6366F1), Color(0xFF3B82F6), Color(0xFF10B981)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(24),
+              bottomRight: Radius.circular(24),
+            ),
+          ),
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -122,11 +120,11 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: 'Tên giao dịch',
-                hintText: 'Ví dụ: Tiền thuê nhà',
+                hintText: 'Ví dụ: Tiền nhà, Lương tháng',
                 prefixIcon: Icon(Icons.title),
               ),
               validator: (value) => (value == null || value.trim().isEmpty)
-                  ? 'Vui lòng nhập tên'
+                  ? 'Vui lòng nhập tên giao dịch'
                   : null,
             ),
             const SizedBox(height: AppConstants.defaultPadding),
@@ -154,7 +152,7 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
               controller: _categoryController,
               decoration: const InputDecoration(
                 labelText: 'Danh mục',
-                hintText: 'Ví dụ: Nhà ở',
+                hintText: 'Ví dụ: Nhà ở, Lương',
                 prefixIcon: Icon(Icons.category),
               ),
               validator: (value) => (value == null || value.trim().isEmpty)
@@ -162,66 +160,25 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
                   : null,
             ),
             const SizedBox(height: AppConstants.defaultPadding),
-            DropdownButtonFormField<RecurrenceFrequency>(
-              initialValue: _frequency,
+            DropdownButtonFormField<int>(
+              initialValue: _dayOfMonth,
               decoration: const InputDecoration(
-                labelText: 'Tần suất',
-                prefixIcon: Icon(Icons.repeat),
+                labelText: 'Ngày lặp lại hàng tháng',
+                prefixIcon: Icon(Icons.calendar_today),
               ),
-              items: RecurrenceFrequency.values.map((freq) {
-                return DropdownMenuItem(
-                  value: freq,
-                  child: Text(freq.displayName),
-                );
-              }).toList(),
+              items: List.generate(31, (index) => index + 1)
+                  .map(
+                    (day) =>
+                        DropdownMenuItem(value: day, child: Text('Ngày $day')),
+                  )
+                  .toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() {
-                    _frequency = value;
+                    _dayOfMonth = value;
                   });
                 }
               },
-            ),
-            const SizedBox(height: AppConstants.defaultPadding),
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _selectDate(true),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Ngày bắt đầu',
-                        prefixIcon: Icon(Icons.calendar_today),
-                      ),
-                      child: Text(Formatters.formatDate(_startDate)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppConstants.smallPadding),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _selectDate(false),
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: 'Ngày kết thúc (tùy chọn)',
-                        prefixIcon: const Icon(Icons.calendar_today),
-                        suffixIcon: _endDate != null
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () =>
-                                    setState(() => _endDate = null),
-                              )
-                            : null,
-                      ),
-                      child: Text(
-                        _endDate != null
-                            ? Formatters.formatDate(_endDate!)
-                            : 'Không có',
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
             const SizedBox(height: AppConstants.largePadding),
             const Text(
@@ -259,7 +216,7 @@ class _AddEditRecurringScreenState extends State<AddEditRecurringScreen> {
             ElevatedButton.icon(
               onPressed: _saveRecurring,
               icon: Icon(_isEditing ? Icons.save_as : Icons.add_task),
-              label: Text(_isEditing ? 'Cập nhật' : 'Lưu'),
+              label: Text(_isEditing ? 'Cập nhật' : 'Tạo mới'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                   vertical: AppConstants.defaultPadding,

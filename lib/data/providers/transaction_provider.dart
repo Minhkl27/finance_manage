@@ -55,7 +55,10 @@ class TransactionProvider with ChangeNotifier {
   }
 
   // Add transaction
-  Future<void> addTransaction(Transaction transaction) async {
+  Future<void> addTransaction(
+    Transaction transaction, {
+    required bool fromRecurring,
+  }) async {
     _transactions.add(transaction);
     notifyListeners();
     await _saveTransactions();

@@ -6,9 +6,15 @@ import 'data/providers/budget_provider.dart';
 import 'data/providers/template_provider.dart';
 import 'data/providers/transaction_provider.dart';
 import 'data/providers/recurring_transaction_provider.dart';
+import 'core/services/notification_service.dart';
 import 'main_screen.dart';
 
-void main() {
+void main() async {
+  // Đảm bảo Flutter binding đã được khởi tạo
+  WidgetsFlutterBinding.ensureInitialized();
+  // Khởi tạo và yêu cầu quyền cho dịch vụ thông báo
+  await NotificationService().init();
+  await NotificationService().requestPermissions();
   runApp(const ExpenseApp());
 }
 

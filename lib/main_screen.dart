@@ -22,7 +22,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
 
   // Danh sách các màn hình tương ứng với các tab
@@ -43,7 +43,17 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    // Lắng nghe các thay đổi trạng thái của ứng dụng (ví dụ: resume, inactive)
+    WidgetsBinding.instance.addObserver(this);
+    // Tải dữ liệu và tạo giao dịch khi ứng dụng khởi động
     _loadDataAndGenerateTransactions();
+  }
+
+  @override
+  void dispose() {
+    // Gỡ bỏ observer khi widget bị hủy
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   Future<void> _loadDataAndGenerateTransactions() async {
@@ -60,6 +70,21 @@ class _MainScreenState extends State<MainScreen> {
     await templateProvider.loadTemplates();
     await recurringProvider.loadRecurringTransactions();
     await recurringProvider.generateDueTransactions(transactionProvider);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Khi người dùng mở lại ứng dụng (từ background),
+    // kiểm tra lại các giao dịch định kỳ đến hạn.
+    if (state == AppLifecycleState.resumed) {
+      // Chỉ cần tạo giao dịch, không cần tải lại toàn bộ dữ liệu
+      final recurringProvider = context.read<RecurringTransactionProvider>();
+      final transactionProvider = context.read<TransactionProvider>();
+      if (recurringProvider.recurringTransactions.isNotEmpty) {
+        recurringProvider.generateDueTransactions(transactionProvider);
+      }
+    }
   }
 
   @override
