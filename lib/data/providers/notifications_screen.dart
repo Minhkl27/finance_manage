@@ -54,31 +54,62 @@ class NotificationsScreen extends StatelessWidget {
               itemCount: notifications.length,
               itemBuilder: (context, index) {
                 final notification = notifications[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: ListTile(
-                    leading: Icon(
-                      notification.isRead
-                          ? Icons.notifications_none
-                          : Icons.notifications_active,
-                      color: notification.isRead
-                          ? Colors.grey
-                          : Theme.of(context).colorScheme.primary,
-                    ),
-                    title: Text(
-                      notification.title,
-                      style: TextStyle(
-                        fontWeight: notification.isRead
-                            ? FontWeight.normal
-                            : FontWeight.bold,
+                return Dismissible(
+                  key: Key(notification.id),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    context.read<NotificationProvider>().deleteNotification(
+                      notification.id,
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đã xóa thông báo.'),
+                        duration: Duration(seconds: 2),
                       ),
+                    );
+                  },
+                  background: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    subtitle: Text(notification.body),
-                    trailing: Text(
-                      Formatters.formatTimeAgo(notification.timestamp),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    child: const Icon(
+                      Icons.delete_sweep_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: ListTile(
+                      leading: Icon(
+                        notification.isRead
+                            ? Icons.notifications_none
+                            : Icons.notifications_active,
+                        color: notification.isRead
+                            ? Colors.grey
+                            : Theme.of(context).colorScheme.primary,
+                      ),
+                      title: Text(
+                        notification.title,
+                        style: TextStyle(
+                          fontWeight: notification.isRead
+                              ? FontWeight.normal
+                              : FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(notification.body),
+                      trailing: Text(
+                        Formatters.formatTimeAgo(notification.timestamp),
+                      ),
                     ),
                   ),
                 );

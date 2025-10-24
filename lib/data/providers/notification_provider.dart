@@ -60,4 +60,11 @@ class NotificationProvider with ChangeNotifier {
     notifyListeners();
     await _saveNotifications();
   }
+
+  // Delete a notification
+  Future<void> deleteNotification(String id) async {
+    _notifications.removeWhere((n) => n.id == id);
+    notifyListeners();
+    await _saveNotifications();
+  }
 }
