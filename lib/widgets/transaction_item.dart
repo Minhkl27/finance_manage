@@ -67,16 +67,10 @@ class _TransactionItemState extends State<TransactionItem>
           child: Dismissible(
             key: Key(widget.transaction.id),
             direction: DismissDirection.endToStart,
-            background: _buildSwipeBackground(colorScheme),
-            confirmDismiss: (direction) async {
+            background: _buildSwipeBackground(),
+            onDismissed: (direction) {
               if (direction == DismissDirection.endToStart &&
                   widget.onDelete != null) {
-                return await _showDeleteConfirmation(context);
-              }
-              return false;
-            },
-            onDismissed: (direction) {
-              if (widget.onDelete != null) {
                 widget.onDelete!();
               }
             },
@@ -87,7 +81,7 @@ class _TransactionItemState extends State<TransactionItem>
     );
   }
 
-  Widget _buildSwipeBackground(ColorScheme colorScheme) {
+  Widget _buildSwipeBackground() {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -102,7 +96,7 @@ class _TransactionItemState extends State<TransactionItem>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.delete_rounded, color: Colors.white, size: 28),
+          const Icon(Icons.delete_rounded, color: Colors.white, size: 28),
           const SizedBox(height: 4),
           Text(
             'Xóa',
@@ -265,45 +259,6 @@ class _TransactionItemState extends State<TransactionItem>
             ),
           ),
       ],
-    );
-  }
-
-  Future<bool?> _showDeleteConfirmation(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Xác nhận xóa',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-        ),
-        content: Text(
-          'Bạn có chắc chắn muốn xóa giao dịch "${widget.transaction.title}"?',
-          style: GoogleFonts.inter(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(
-              'Hủy',
-              style: GoogleFonts.inter(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.errorRed,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(
-              'Xóa',
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

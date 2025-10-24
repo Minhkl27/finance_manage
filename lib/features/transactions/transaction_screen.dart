@@ -1,9 +1,12 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/transaction_provider.dart';
 import '../../data/providers/budget_provider.dart';
 import '../../widgets/transaction_item.dart';
+import '../../data/models/transaction.dart';
 import '../../widgets/empty_state.dart';
 import 'add_transaction_screen.dart';
 import '../../core/constants/app_constants.dart';
@@ -26,7 +29,7 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
-  void _editTransaction(transaction) {
+  void _editTransaction(Transaction transaction) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AddTransactionScreen(transaction: transaction),
@@ -34,34 +37,33 @@ class _TransactionScreenState extends State<TransactionScreen> {
     );
   }
 
-  void _deleteTransaction(String id) {
+  void _deleteTransaction(Transaction transaction) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Xác nhận xóa'),
-        content: const Text('Bạn có chắc chắn muốn xóa giao dịch này?'),
+        content: Text(
+          'Bạn có chắc chắn muốn xóa giao dịch "${transaction.title}"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Hủy'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final transactionProvider = context.read<TransactionProvider>();
               final budgetProvider = context.read<BudgetProvider>();
-              // Lấy giao dịch cũ trước khi xóa
-              final oldTransaction = transactionProvider.transactions
-                  .firstWhere((tx) => tx.id == id);
 
-              transactionProvider.deleteTransaction(id);
+              await transactionProvider.deleteTransaction(transaction.id);
               Navigator.of(ctx).pop();
               // Kiểm tra ngân sách sau khi xóa
-              transactionProvider.checkBudgetsAndNotify(
+              await transactionProvider.checkBudgetsAndNotify(
                 budgetProvider,
-                oldTransaction: oldTransaction,
+                oldTransaction: transaction,
               );
             },
-            child: const Text('Xóa'),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -276,20 +278,18 @@ class _TransactionScreenState extends State<TransactionScreen> {
                       : ListView.builder(
                           itemCount: transactions.length,
                           itemBuilder: (ctx, index) {
-                            // Sắp xếp lại để hiển thị giao dịch mới nhất lên đầu
-                            final tx =
-                                transactions[transactions.length - 1 - index];
-
                             return TransactionItem(
-                              transaction: tx,
-                              onTap: () => _editTransaction(tx),
-                              onDelete: () => _deleteTransaction(tx.id),
+                              transaction: transactions[index],
+                              onTap: () =>
+                                  _editTransaction(transactions[index]),
+                              onDelete: () =>
+                                  _deleteTransaction(transactions[index]),
                             );
                           },
                           padding: const EdgeInsets.only(
                             left: AppConstants.defaultPadding,
                             right: AppConstants.defaultPadding,
-                            bottom: 80, // Thêm khoảng đệm dưới cùng
+                            bottom: 140, // Thêm khoảng đệm dưới cùng
                           ),
                         ),
                 ),
