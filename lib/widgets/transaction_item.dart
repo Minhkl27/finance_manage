@@ -58,24 +58,25 @@ class _TransactionItemState extends State<TransactionItem>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final card = _buildTransactionCard(theme, colorScheme);
+
     return ScaleTransition(
       scale: _scaleAnimation,
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-          child: Dismissible(
-            key: Key(widget.transaction.id),
-            direction: DismissDirection.endToStart,
-            background: _buildSwipeBackground(),
-            onDismissed: (direction) {
-              if (direction == DismissDirection.endToStart &&
-                  widget.onDelete != null) {
-                widget.onDelete!();
-              }
-            },
-            child: _buildTransactionCard(theme, colorScheme),
-          ),
+          child: widget.onDelete != null
+              ? Dismissible(
+                  key: Key(widget.transaction.id),
+                  direction: DismissDirection.endToStart,
+                  background: _buildSwipeBackground(),
+                  onDismissed: (direction) {
+                    widget.onDelete!();
+                  },
+                  child: card,
+                )
+              : card,
         ),
       ),
     );

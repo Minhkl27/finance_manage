@@ -44,6 +44,25 @@ class Formatters {
     return DateFormat('MM/yyyy').format(date);
   }
 
+  // Format time ago
+  static String formatTimeAgo(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inSeconds < 5) {
+      return 'Vừa xong';
+    } else if (difference.inMinutes < 1) {
+      return '${difference.inSeconds} giây trước';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes} phút trước';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} giờ trước';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} ngày trước';
+    }
+    return formatDate(date);
+  }
+
   // Parse currency string to double
   static double? parseCurrency(String value) {
     // Remove currency symbol and spaces

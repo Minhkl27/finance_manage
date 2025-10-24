@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../data/providers/notification_provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/transaction_provider.dart';
 import '../../data/providers/budget_provider.dart';
@@ -53,13 +54,17 @@ class _TransactionScreenState extends State<TransactionScreen> {
           TextButton(
             onPressed: () async {
               final transactionProvider = context.read<TransactionProvider>();
+              final notificationProvider = context.read<NotificationProvider>();
               final budgetProvider = context.read<BudgetProvider>();
-
-              await transactionProvider.deleteTransaction(transaction.id);
+              await transactionProvider.deleteTransaction(
+                transaction.id,
+                notificationProvider,
+              );
               Navigator.of(ctx).pop();
               // Kiểm tra ngân sách sau khi xóa
               await transactionProvider.checkBudgetsAndNotify(
                 budgetProvider,
+                notificationProvider,
                 oldTransaction: transaction,
               );
             },

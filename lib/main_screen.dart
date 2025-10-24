@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'data/providers/transaction_provider.dart';
+import 'data/providers/notification_provider.dart';
 import 'data/providers/template_provider.dart';
 import 'data/providers/recurring_transaction_provider.dart';
 import 'data/providers/budget_provider.dart';
@@ -63,13 +64,18 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final transactionProvider = context.read<TransactionProvider>();
     final budgetProvider = context.read<BudgetProvider>();
     final templateProvider = context.read<TemplateProvider>();
+    final notificationProvider = context.read<NotificationProvider>();
     final recurringProvider = context.read<RecurringTransactionProvider>();
 
     await transactionProvider.loadTransactions();
     await budgetProvider.loadBudgets();
     await templateProvider.loadTemplates();
+    await notificationProvider.loadNotifications();
     await recurringProvider.loadRecurringTransactions();
-    await recurringProvider.generateDueTransactions(transactionProvider);
+    await recurringProvider.generateDueTransactions(
+      transactionProvider,
+      notificationProvider,
+    );
   }
 
   @override
@@ -80,9 +86,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // Chỉ cần tạo giao dịch, không cần tải lại toàn bộ dữ liệu
       final recurringProvider = context.read<RecurringTransactionProvider>();
+      final notificationProvider = context.read<NotificationProvider>();
       final transactionProvider = context.read<TransactionProvider>();
       if (recurringProvider.recurringTransactions.isNotEmpty) {
-        recurringProvider.generateDueTransactions(transactionProvider);
+        recurringProvider.generateDueTransactions(
+          transactionProvider,
+          notificationProvider,
+        );
       }
     }
   }

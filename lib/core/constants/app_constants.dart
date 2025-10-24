@@ -37,4 +37,5 @@ class AppConstants {
   static const String budgetsKey = 'budgets';
   static const String themeKey = 'theme_mode';
   static const String languageKey = 'language';
+  static const String notificationsKey = 'notifications';
 }

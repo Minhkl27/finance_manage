@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/budget.dart';
+import '../../data/models/app_notification.dart';
 import '../constants/app_constants.dart';
 
 class StorageService {
@@ -59,6 +60,30 @@ class StorageService {
 
       final jsonList = jsonDecode(jsonString) as List;
       return jsonList.map((json) => Budget.fromJson(json)).toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // Save AppNotifications
+  Future<bool> saveAppNotifications(List<AppNotification> notifications) async {
+    try {
+      final jsonList = notifications.map((n) => n.toJson()).toList();
+      final jsonString = jsonEncode(jsonList);
+      return await _prefs!.setString(AppConstants.notificationsKey, jsonString);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Load AppNotifications
+  Future<List<AppNotification>> loadAppNotifications() async {
+    try {
+      final jsonString = _prefs!.getString(AppConstants.notificationsKey);
+      if (jsonString == null) return [];
+
+      final jsonList = jsonDecode(jsonString) as List;
+      return jsonList.map((json) => AppNotification.fromJson(json)).toList();
     } catch (e) {
       return [];
     }

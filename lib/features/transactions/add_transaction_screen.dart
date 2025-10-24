@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/models/transaction.dart';
 import '../../data/models/transaction_template.dart';
+import '../../data/providers/notification_provider.dart';
 import '../../data/providers/budget_provider.dart';
 import '../../data/providers/transaction_provider.dart';
 import '../../core/constants/app_constants.dart';
@@ -134,6 +135,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
 
     final transactionProvider = context.read<TransactionProvider>();
+    final notificationProvider = context.read<NotificationProvider>();
     final budgetProvider = context.read<BudgetProvider>();
     // Capture Navigator and ScaffoldMessenger before the async gap.
     final navigator = Navigator.of(context);
@@ -145,10 +147,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       await transactionProvider.updateTransaction(
         widget.transaction!.id,
         transaction,
+        notificationProvider,
       );
       // Kiểm tra ngân sách sau khi cập nhật
       await transactionProvider.checkBudgetsAndNotify(
         budgetProvider,
+        notificationProvider,
         oldTransaction: oldTransaction,
         newTransaction: transaction,
       );
@@ -156,10 +160,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       await transactionProvider.addTransaction(
         transaction,
         fromRecurring: false,
+        notificationProvider: notificationProvider,
       );
       // Kiểm tra ngân sách sau khi thêm
       await transactionProvider.checkBudgetsAndNotify(
         budgetProvider,
+        notificationProvider,
         newTransaction: transaction,
       );
     }

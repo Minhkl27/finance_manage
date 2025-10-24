@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/recurring_transaction.dart';
-import '../../core/services/notification_service.dart';
-import '../../core/utils/formatters.dart';
+import 'notification_provider.dart';
 import '../models/transaction.dart' as tx_model;
 import 'transaction_provider.dart';
 
@@ -67,6 +66,7 @@ class RecurringTransactionProvider with ChangeNotifier {
 
   Future<void> generateDueTransactions(
     TransactionProvider transactionProvider,
+    NotificationProvider notificationProvider,
   ) async {
     final now = DateTime.now();
     bool hasGenerated = false;
@@ -99,12 +99,13 @@ class RecurringTransactionProvider with ChangeNotifier {
           await transactionProvider.addTransaction(
             newTransaction,
             fromRecurring: true,
+            notificationProvider: notificationProvider,
           );
 
           // Gửi thông báo đến người dùng
-          await NotificationService().showNotification(
+          await notificationProvider.addNotification(
             'Giao dịch định kỳ được tạo',
-            '${recurring.title}: ${Formatters.formatCurrencyWithSign(recurring.amount, recurring.isIncome)} đã được thêm vào giao dịch của bạn.',
+            'Giao dịch "${recurring.title}" đã được tự động thêm.',
           );
 
           // Cập nhật lại ngày tạo cuối cùng cho giao dịch định kỳ này

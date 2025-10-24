@@ -1,17 +1,18 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:finance_manage/features/dashboard/add_edit_recurring_screen.dart';
 import 'package:finance_manage/features/transactions/add_transaction_screen.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
-import '../../data/models/transaction.dart';
+import '../../data/providers/notification_provider.dart';
 import '../../data/providers/template_provider.dart';
 import '../../data/providers/transaction_provider.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/transaction_item.dart';
 import '../budget/add_edit_budget_screen.dart';
+import '../../data/providers/notifications_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,7 +22,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  bool _isBalanceVisible = true;
+  bool _isBalanceVisible = true; // State to toggle balance visibility
 
   @override
   Widget build(BuildContext context) {
@@ -33,25 +34,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final now = DateTime.now();
     final monthTransactions = transactionProvider.getTransactionsByMonth(now);
-    final monthIncome = monthTransactions
-        .where((tx) => tx.isIncome)
-        .fold(0.0, (sum, tx) => sum + tx.amount);
+    final monthIncome =
+        monthTransactions // Corrected variable name
+            .where((tx) => tx.isIncome)
+            .fold(0.0, (sum, tx) => sum + tx.amount);
     final monthExpense = monthTransactions
         .where((tx) => !tx.isIncome)
         .fold(0.0, (sum, tx) => sum + tx.amount);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Tổng quan',
-          style: GoogleFonts.inter(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        title: Text('Tổng quan'),
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -69,6 +62,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
+        actions: [
+          Consumer<NotificationProvider>(
+            builder: (context, notificationProvider, child) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: IconButton(
+                  icon: Badge(
+                    label: Text(notificationProvider.unreadCount.toString()),
+                    isLabelVisible: notificationProvider.unreadCount > 0,
+                    child: const Icon(Icons.notifications_outlined),
+                  ),
+                  onPressed: () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen(),
+                      ),
+                    );
+                    // Mark all as read after viewing
+                    if (notificationProvider.unreadCount > 0) {
+                      notificationProvider.markAllAsRead();
+                    }
+                  },
+                  tooltip: 'Thông báo',
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Container(
         width: double.infinity,
@@ -85,56 +106,75 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         child: transactionProvider.transactions.isEmpty
-            ? const EmptyState(
+            ? EmptyState(
                 icon: Icons.account_balance_wallet_outlined,
                 title: 'Chào mừng bạn!',
                 subtitle: 'Hãy bắt đầu bằng cách thêm giao dịch đầu tiên.',
+                action: _buildActionButton(
+                  context,
+                  icon: Icons.add_card_rounded,
+                  label: 'Thêm Giao dịch',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AddTransactionScreen(),
+                    ),
+                  ),
+                ),
               )
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(AppConstants.defaultPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBalanceCard(context, totalBalance, _isBalanceVisible),
-                    const SizedBox(height: AppConstants.defaultPadding),
-                    _buildActionButtons(context),
-                    const SizedBox(height: AppConstants.largePadding),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSummaryCard(
-                            context,
-                            'Thu nhập tháng',
-                            monthIncome,
-                            const Color(0xFF10B981),
-                            Icons.trending_up_rounded,
-                          ),
-                        ),
-                        const SizedBox(width: AppConstants.smallPadding),
-                        Expanded(
-                          child: _buildSummaryCard(
-                            context,
-                            'Chi tiêu tháng',
-                            monthExpense,
-                            const Color(0xFFEF4444),
-                            Icons.trending_down_rounded,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppConstants.largePadding),
-                    Text(
-                      'Giao dịch gần đây',
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
+            : RefreshIndicator(
+                onRefresh: () =>
+                    context.read<TransactionProvider>().loadTransactions(),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBalanceCard(
+                        context,
+                        totalBalance,
+                        _isBalanceVisible,
                       ),
-                    ),
-                    const SizedBox(height: AppConstants.defaultPadding),
-                    _buildRecentTransactions(context, recentTransactions),
-                    const SizedBox(height: 80), // Padding for FAB
-                  ],
+                      const SizedBox(height: AppConstants.defaultPadding),
+                      _buildActionButtons(context),
+                      const SizedBox(height: AppConstants.largePadding),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSummaryCard(
+                              context,
+                              'Thu nhập tháng',
+                              monthIncome,
+                              const Color(0xFF10B981),
+                              Icons.trending_up_rounded,
+                            ),
+                          ),
+                          const SizedBox(width: AppConstants.smallPadding),
+                          Expanded(
+                            child: _buildSummaryCard(
+                              context,
+                              'Chi tiêu tháng',
+                              monthExpense,
+                              const Color(0xFFEF4444),
+                              Icons.trending_down_rounded,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppConstants.largePadding),
+                      Text(
+                        'Giao dịch gần đây',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: AppConstants.smallPadding),
+                      _buildRecentTransactions(
+                        context,
+                        recentTransactions,
+                      ), // Updated this call
+                      const SizedBox(height: 80), // Padding for FAB
+                    ],
+                  ),
                 ),
               ),
       ),
@@ -147,8 +187,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     bool isVisible,
   ) {
     final colorScheme = Theme.of(context).colorScheme;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
+    return Card(
+      elevation: 4,
+      shadowColor: colorScheme.primary.withOpacity(0.2),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -160,6 +201,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: colorScheme.primary.withOpacity(0.3),
@@ -209,7 +251,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Text(
                         'Số dư hiện tại',
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
                           color: Colors.white.withOpacity(0.8),
                           fontSize: 16,
                         ),
@@ -230,7 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(height: 8),
                   Text(
                     isVisible ? Formatters.formatCurrency(balance) : '••••••••',
-                    style: GoogleFonts.inter(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -253,7 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     IconData icon,
   ) {
     return Card(
-      elevation: 2,
+      // This is already a Card, no need for another one
       shadowColor: Colors.black.withOpacity(0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -266,8 +308,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   title,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -277,10 +318,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 8),
             Text(
               Formatters.formatCurrency(amount),
-              style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: color,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -295,7 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         _buildActionButton(
           context,
-          icon: Icons.add_card_rounded,
+          icon: Icons.add_shopping_cart_rounded,
           label: 'Thêm GD',
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AddTransactionScreen()),
@@ -303,7 +343,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         _buildActionButton(
           context,
-          icon: Icons.edit_note_rounded,
+          icon: Icons.savings_outlined,
           label: 'Ngân sách',
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AddEditBudgetScreen()),
@@ -311,7 +351,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         _buildActionButton(
           context,
-          icon: Icons.more_horiz_rounded,
+          icon: Icons.apps_rounded,
           label: 'Thêm',
           onTap: () {
             _showMoreActions(context);
@@ -323,58 +363,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildRecentTransactions(
     BuildContext context,
-    List<Transaction> transactions,
+    List<dynamic> recentTransactions,
   ) {
-    return Card(
-      // Remove the outer card and build a list of items directly
-      // to give a more integrated feel.
-      // elevation: 2,
-      // shadowColor: Colors.black.withOpacity(0.1),
-      // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: transactions.length,
-        itemBuilder: (context, index) {
-          final tx = transactions[index];
-          return ListTile(
-            leading: CircleAvatar(
-              backgroundColor:
-                  (tx.isIncome
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFEF4444))
-                      .withOpacity(0.1),
-              child: Icon(
-                tx.isIncome
-                    ? Icons.trending_up_rounded
-                    : Icons.trending_down_rounded,
-                color: tx.isIncome
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEF4444),
-                size: 20,
+    if (recentTransactions.isEmpty) {
+      return const Center(child: Text('Không có giao dịch nào gần đây.'));
+    }
+    return Column(
+      children: recentTransactions
+          .map(
+            (tx) => TransactionItem(
+              transaction: tx,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AddTransactionScreen(transaction: tx),
+                ),
               ),
             ),
-            title: Text(
-              tx.title,
-              style: GoogleFonts.inter(fontWeight: FontWeight.w500),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(Formatters.formatDateForDisplay(tx.date)),
-            trailing: Text(
-              Formatters.formatCurrencyWithSign(tx.amount, tx.isIncome),
-              style: GoogleFonts.inter(
-                fontWeight: FontWeight.bold,
-                color: tx.isIncome
-                    ? const Color(0xFF10B981)
-                    : const Color(0xFFEF4444),
-              ),
-            ),
-          );
-        },
-        separatorBuilder: (context, index) =>
-            const Divider(height: 1, indent: 72),
-      ),
+          )
+          .toList(),
     );
   }
 
@@ -392,6 +398,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
+              // Corrected decoration
               color: colorScheme.primary.withOpacity(0.1),
               shape: BoxShape.circle,
               border: Border.all(
@@ -402,14 +409,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Icon(icon, color: colorScheme.primary, size: 28),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );
@@ -427,6 +427,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Wrap(
             children: <Widget>[
               ListTile(
+                // Corrected ListTile
                 leading: const Icon(Icons.copy_rounded),
                 title: const Text('Thêm từ Mẫu'),
                 subtitle: const Text('Tạo giao dịch nhanh từ các mẫu có sẵn'),
@@ -436,6 +437,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               ),
               ListTile(
+                // Corrected ListTile
                 leading: const Icon(Icons.repeat_rounded),
                 title: const Text('Thêm giao dịch định kỳ'),
                 subtitle: const Text('Thiết lập các khoản thu/chi lặp lại'),
@@ -449,6 +451,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 },
               ),
               ListTile(
+                // Corrected ListTile
                 leading: const Icon(Icons.swap_horiz_rounded),
                 title: const Text('Chuyển tiền'),
                 subtitle: const Text('Ghi lại việc chuyển tiền giữa các ví'),
@@ -497,10 +500,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 'Chọn một mẫu để tạo giao dịch',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
             Flexible(
@@ -510,6 +512,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 itemBuilder: (listCtx, index) {
                   final template = templates[index];
                   return ListTile(
+                    // Corrected ListTile
                     leading: Icon(
                       template.isIncome
                           ? Icons.trending_up

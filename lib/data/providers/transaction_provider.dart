@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../models/transaction.dart';
-import '../../core/services/notification_service.dart';
 import '../../core/services/storage_service.dart';
+import '../models/transaction.dart';
+import 'notification_provider.dart';
 import 'budget_provider.dart';
 
 class TransactionProvider with ChangeNotifier {
@@ -57,23 +57,35 @@ class TransactionProvider with ChangeNotifier {
   }
 
   // Kiểm tra số dư và gửi thông báo nếu cần
-  Future<void> _checkBalanceAndNotify(double oldBalance) async {
+  Future<void> _checkBalanceAndNotify(
+    double oldBalance,
+    NotificationProvider notificationProvider,
+  ) async {
     const threshold = 300000;
     final newBalance =
         balance; // `balance` là một getter, nó sẽ được tính toán lại
 
     // Chỉ gửi thông báo khi số dư VỪA MỚI giảm xuống dưới ngưỡng
     if (oldBalance >= threshold && newBalance < threshold) {
-      await NotificationService().showNotification(
+      await notificationProvider.addNotification(
         'Cảnh báo số dư thấp',
         'Số dư hiện tại còn dưới 300.000! Hãy chi tiêu tiết kiệm hơn.',
+      );
+    }
+
+    // Gửi thông báo khi số dư xuống âm
+    if (oldBalance >= 0 && newBalance < 0) {
+      await notificationProvider.addNotification(
+        'Cảnh báo số dư âm!',
+        'Tài khoản của bạn đã bị âm! Vui lòng kiểm tra lại các khoản chi.',
       );
     }
   }
 
   // Kiểm tra ngân sách và gửi thông báo nếu cần
   Future<void> checkBudgetsAndNotify(
-    BudgetProvider budgetProvider, {
+    BudgetProvider budgetProvider,
+    NotificationProvider notificationProvider, {
     Transaction? oldTransaction, // Giao dịch cũ (khi sửa/xóa)
     Transaction? newTransaction, // Giao dịch mới (khi thêm/sửa)
   }) async {
@@ -125,9 +137,17 @@ class TransactionProvider with ChangeNotifier {
 
       // Chỉ gửi thông báo khi số tiền còn lại VỪA MỚI giảm xuống dưới ngưỡng
       if (previousRemaining >= threshold && currentRemaining < threshold) {
-        await NotificationService().showNotification(
+        await notificationProvider.addNotification(
           'Cảnh báo ngân sách',
           'Ngân sách cho "${budget.category}" sắp hết! Chỉ còn dưới 200.000.',
+        );
+      }
+
+      // Gửi thông báo khi ngân sách bị chi vượt mức (âm)
+      if (previousRemaining >= 0 && currentRemaining < 0) {
+        await notificationProvider.addNotification(
+          'Ngân sách đã bị vượt!',
+          'Bạn đã chi tiêu vượt quá ngân sách cho danh mục "${budget.category}".',
         );
       }
     }
@@ -137,6 +157,7 @@ class TransactionProvider with ChangeNotifier {
   Future<void> addTransaction(
     Transaction transaction, {
     required bool fromRecurring,
+    required NotificationProvider notificationProvider,
   }) async {
     final oldBalance = balance;
     _transactions.add(transaction);
@@ -144,13 +165,20 @@ class TransactionProvider with ChangeNotifier {
     _transactions.sort((a, b) => b.date.compareTo(a.date));
     notifyListeners();
     await _saveTransactions();
-    await _checkBalanceAndNotify(oldBalance);
+    await _checkBalanceAndNotify(oldBalance, notificationProvider);
   }
 
   // Add transaction only if an entry with the same ID doesn't exist
-  Future<void> addTransactionIfNotExists(Transaction transaction) async {
+  Future<void> addTransactionIfNotExists(
+    Transaction transaction, {
+    required NotificationProvider notificationProvider,
+  }) async {
     if (!_transactions.any((tx) => tx.id == transaction.id)) {
-      await addTransaction(transaction, fromRecurring: true);
+      await addTransaction(
+        transaction,
+        fromRecurring: true,
+        notificationProvider: notificationProvider,
+      );
     }
   }
 
@@ -158,6 +186,7 @@ class TransactionProvider with ChangeNotifier {
   Future<void> updateTransaction(
     String id,
     Transaction updatedTransaction,
+    NotificationProvider notificationProvider,
   ) async {
     final index = _transactions.indexWhere((tx) => tx.id == id);
     if (index == -1) return;
@@ -168,13 +197,16 @@ class TransactionProvider with ChangeNotifier {
     _transactions.sort((a, b) => b.date.compareTo(a.date));
     notifyListeners();
 
-    await _checkBalanceAndNotify(oldBalance);
+    await _checkBalanceAndNotify(oldBalance, notificationProvider);
     // Việc kiểm tra ngân sách sẽ được gọi từ UI
     await _saveTransactions();
   }
 
   // Delete transaction
-  Future<void> deleteTransaction(String id) async {
+  Future<void> deleteTransaction(
+    String id,
+    NotificationProvider notificationProvider,
+  ) async {
     final index = _transactions.indexWhere((tx) => tx.id == id);
     if (index == -1) return;
 
@@ -182,7 +214,7 @@ class TransactionProvider with ChangeNotifier {
     _transactions.removeWhere((tx) => tx.id == id);
     notifyListeners();
     await _saveTransactions();
-    await _checkBalanceAndNotify(oldBalance);
+    await _checkBalanceAndNotify(oldBalance, notificationProvider);
     // Việc kiểm tra ngân sách sẽ được gọi từ UI
   }
 

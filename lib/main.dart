@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'data/providers/budget_provider.dart';
+import 'data/providers/notification_provider.dart';
 import 'data/providers/template_provider.dart';
 import 'data/providers/transaction_provider.dart';
 import 'data/providers/recurring_transaction_provider.dart';
@@ -25,6 +26,7 @@ class ExpenseApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => BudgetProvider()),
         ChangeNotifierProvider(create: (_) => TemplateProvider()),
