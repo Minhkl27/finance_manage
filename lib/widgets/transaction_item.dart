@@ -130,7 +130,7 @@ class _TransactionItemState extends State<TransactionItem>
           child: Row(
             children: [
               _buildTransactionIcon(),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(child: _buildTransactionDetails()),
               _buildTransactionAmount(),
             ],

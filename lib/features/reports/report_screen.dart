@@ -1,6 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../data/providers/transaction_provider.dart';
@@ -240,6 +242,22 @@ class _ReportScreenState extends State<ReportScreen> {
 
                   const SizedBox(height: AppConstants.defaultPadding),
 
+                  // Trend Chart Section
+                  Text(
+                    'Xu hướng thu chi',
+                    style: GoogleFonts.inter(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+
+                  const SizedBox(height: AppConstants.defaultPadding),
+
+                  _buildTrendChart(transactionProvider),
+
+                  const SizedBox(height: AppConstants.largePadding),
+
                   // Pie Chart Section
                   Text(
                     'Phân tích thu chi',
@@ -261,30 +279,14 @@ class _ReportScreenState extends State<ReportScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Pie Chart
                           SizedBox(
-                            height: 160,
-                            child: Row(
-                              children: [
-                                // Pie Chart
-                                Expanded(
-                                  flex: 5,
-                                  child: _buildPieChart(
-                                    monthIncome,
-                                    monthExpense,
-                                  ),
-                                ),
-                                const SizedBox(width: 20),
-                                // Legend
-                                Expanded(
-                                  flex: 4,
-                                  child: _buildChartLegend(
-                                    monthIncome,
-                                    monthExpense,
-                                  ),
-                                ),
-                              ],
-                            ),
+                            height: 180,
+                            child: _buildPieChart(monthIncome, monthExpense),
                           ),
+                          const SizedBox(height: AppConstants.defaultPadding),
+                          // Legend
+                          _buildChartLegend(monthIncome, monthExpense),
                         ],
                       ),
                     ),
@@ -452,6 +454,138 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 
+  Widget _buildTrendChart(TransactionProvider provider) {
+    // Prepare data for the last 6 months
+    final Map<int, Map<String, double>> trendData = {};
+    final List<String> monthLabels = [];
+    for (int i = 5; i >= 0; i--) {
+      final month = DateTime(_selectedMonth.year, _selectedMonth.month - i, 1);
+      monthLabels.add(DateFormat('M/yy').format(month));
+
+      final monthTransactions = provider.getTransactionsByMonth(month);
+      final income = monthTransactions
+          .where((tx) => tx.isIncome)
+          .fold(0.0, (sum, tx) => sum + tx.amount);
+      final expense = monthTransactions
+          .where((tx) => !tx.isIncome)
+          .fold(0.0, (sum, tx) => sum + tx.amount);
+
+      trendData[5 - i] = {'income': income, 'expense': expense};
+    }
+
+    final double maxAmount = trendData.values.fold(0.0, (maxVal, monthData) {
+      final maxInMonth = (monthData['income']! > monthData['expense']!)
+          ? monthData['income']!
+          : monthData['expense']!;
+      return maxVal > maxInMonth ? maxVal : maxInMonth;
+    });
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppConstants.defaultPadding),
+        child: SizedBox(
+          height: 200,
+          child: BarChart(
+            BarChartData(
+              maxY: maxAmount * 1.2, // Add 20% padding to the top
+              barTouchData: BarTouchData(
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    String label = rod.toY > 0
+                        ? Formatters.formatCurrency(rod.toY)
+                        : 'Không có';
+                    return BarTooltipItem(
+                      label,
+                      const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              titlesData: FlTitlesData(
+                show: true,
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    getTitlesWidget: (double value, TitleMeta meta) => Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        monthLabels[value.toInt()],
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+
+                    reservedSize: 22,
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 50,
+                    getTitlesWidget: (double value, TitleMeta meta) {
+                      if (value == 0 || value == meta.max) {
+                        return const SizedBox.shrink();
+                      }
+                      return Text(
+                        '${(value / 1000000).toStringAsFixed(1)}tr',
+                        style: const TextStyle(fontSize: 10),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              barGroups: List.generate(6, (index) {
+                final income = trendData[index]?['income'] ?? 0;
+                final expense = trendData[index]?['expense'] ?? 0;
+                return BarChartGroupData(
+                  x: index,
+                  barRods: [
+                    BarChartRodData(
+                      toY: income,
+                      color: const Color(0xFF10B981), // Success green
+                      width: 12,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        topRight: Radius.circular(4),
+                      ),
+                    ),
+                    BarChartRodData(
+                      toY: expense,
+                      color: const Color(0xFFEF4444), // Error red
+                      width: 12,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        topRight: Radius.circular(4),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (value) =>
+                    FlLine(color: Colors.grey.withOpacity(0.2), strokeWidth: 1),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSummaryCard(
     String title,
     double amount,
@@ -523,7 +657,7 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _buildPieChart(double income, double expense) {
-    final total = income - expense;
+    final total = income + expense;
     if (total == 0) {
       return Center(
         child: Column(
@@ -569,7 +703,7 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
             const SizedBox(width: 4),
             Text(
-              Formatters.formatCurrency(total),
+              Formatters.formatCurrency(income - expense),
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -591,23 +725,25 @@ class _ReportScreenState extends State<ReportScreen> {
         ? (expense / total * 100).toDouble()
         : 0.0;
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _buildLegendItem(
-          'Thu nhập',
-          const Color(0xFF10B981), // Success green
-          incomePercentage,
-          Formatters.formatCurrency(income),
+        Expanded(
+          child: _buildLegendItem(
+            'Thu nhập',
+            const Color(0xFF10B981), // Success green
+            incomePercentage,
+            Formatters.formatCurrency(income),
+          ),
         ),
-        const SizedBox(height: 6),
-        _buildLegendItem(
-          'Chi tiêu',
-          const Color(0xFFEF4444), // Error red
-          expensePercentage,
-          Formatters.formatCurrency(expense),
+        const SizedBox(width: AppConstants.smallPadding),
+        Expanded(
+          child: _buildLegendItem(
+            'Chi tiêu',
+            const Color(0xFFEF4444), // Error red
+            expensePercentage,
+            Formatters.formatCurrency(expense),
+          ),
         ),
       ],
     );
@@ -619,63 +755,45 @@ class _ReportScreenState extends State<ReportScreen> {
     double percentage,
     String amount,
   ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
           ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
-                const SizedBox(height: 1),
-                Wrap(
-                  children: [
-                    Text(
-                      '${percentage.toStringAsFixed(1)}%',
-                      style: GoogleFonts.inter(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        amount,
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: color,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                amount,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
                 ),
-              ],
-            ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
